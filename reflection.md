@@ -4,8 +4,7 @@ Answer each question in 3 to 5 sentences. Be specific and honest about what actu
 
 ## 1. What was broken when you started?
 
-- The first time I ran the game, the secret number was 23. There were a total of 8 guesses. The UI included buttons that allowed guesses to be submmited, the game to be restarted, and a hint to be shown. 
-- One bug I found was that it would incorrectly tell me to guess lower when I guessed 21 or 22. Another bug was that the reset game button would sometimes not do anything at all. 
+When I first ran the game, I used the Developer Debug Info panel to compare my guesses against the secret number and the current session state. The first major bug I noticed was that the hint direction was backwards, so guesses above the secret could still tell me to go higher, and guesses below the secret could tell me to go lower. I also found that the New Game button could leave the app stuck after a game ended because the status was not reset to `"playing"`. While working through the fixes, I also cleaned up the logic by moving the helper functions into `logic_utils.py` so they could be tested more directly.
 
 **Bug Reproduction Log**
 
@@ -13,35 +12,30 @@ Document at least 3 bugs you found. Add rows as needed.
 
 | Input | Expected Behavior | Actual Behavior | Console Output / Error |
 |-------|-------------------|-----------------|------------------------|
-|  21    | 📈 Go HIGHER!    |   📉 Go LOWER!   |     No error
-|  25    | 📉 Go LOWER!     |   📈 Go HIGHER!  |    No error
-| Newgame| Game resets      |   Does nothing   |      No error 
+| 21 | `📈 Go HIGHER!` | `📉 Go LOWER!` | No error |
+| 25 | `📉 Go LOWER!` | `📈 Go HIGHER!` | No error |
+| Click **New Game** after finishing a round | A fresh playable game starts | The app can remain stuck in a finished state | No error |
 
 ---
 
 ## 2. How did you use AI as a teammate?
 
-- I used ChatGPT, Claude, and Codex during this project. I used them to help identify bugs, refactor code, generate tests, and review code changes before applying them.
-- One correct suggestion was moving the game logic into logic_utils.py and fixing the string comparison bug. I verified it by running the game and checking that the hints worked correctly.
-- One misleading suggestion passed the tests but still had the high/low messages reversed, which I caught by manually testing the game.
+I used ChatGPT, Claude, and Codex as debugging and review partners during this project. They were most helpful for spotting code smells, suggesting the refactor into `logic_utils.py`, generating tests, and showing diffs before applying changes. One especially useful suggestion was fixing the comparison logic so `check_guess` handled values numerically instead of relying on behavior that could produce the wrong hint direction. One flawed AI output still left the high/low hint messages reversed even though the tests passed at the time, which reminded me that AI suggestions still need manual verification in the actual app.
 
 ---
 
 ## 3. Debugging and testing your fixes
 
-- I decided a bug was fixed only after testing it in the real game. One test I ran was checking that a guess of 60 against a secret number of 50 returned "Too High" and the message "Go LOWER!". I also tested a guess of 40 against a secret number of 50 and confirmed it returned "Too Low" and "Go HIGHER!".
-- My AI also generated tests that checked the high and low hint behavior. These tests helped verify that the bug stayed fixed and that the logic was working correctly.
+I treated a fix as complete only after checking both the app behavior and the automated tests. In the game itself, I confirmed that a guess of 60 against a secret of 50 returned `"Too High"` with `Go LOWER!`, and that a guess of 40 against 50 returned `"Too Low"` with `Go HIGHER!`. I also used pytest to validate the helper logic and ended with `7 passed` using `python -m pytest -q`. That combination of manual testing and automated tests helped me catch problems that either method alone might have missed.
 
 ---
 
 ## 4. What did you learn about Streamlit and state?
 
-- I learned that Streamlit reruns the entire script whenever a user interacts with the app, such as clicking a button or submitting a guess. Because of this, important information needs to be stored in st.session_state so it is not lost during reruns. In this project, session state was used to keep track of the secret number, attempts, score, and game status. Without the session state, the game would reset every time the page reran.
+I learned that Streamlit reruns the full script every time the user interacts with the page. Because of that, values like the secret number, attempts, score, history, and status need to live in `st.session_state` instead of regular local variables. This project made it clear that state bugs are not always about crashes; sometimes the app keeps running but behaves incorrectly across reruns. Resetting the game status during the New Game flow was a good example of how a small state mistake can break the user experience.
 
 ---
 
 ## 5. Looking ahead: your developer habits
 
-- One habit I want to reuse is testing fixes in the actual application instead of assuming they work. Running the game after making changes helped me catch issues that automated tests did not fully detect. If I never played the game myself and assumed the AI was always right, I would've never caught the bug again.
-- Next time, I would manually test AI-generated fixes earlier in the process. I learned that even when AI-generated code looks correct and passes tests, there can still be problems in the actual application.
-- This project showed me that AI agents can be really useful, but its suggestions should always be reviewed and verified. AI can help find bugs and write code quickly, but the developers/engineers are still responsible for testing and confirming that the code works correctly.
+One habit I want to keep is asking for diffs before applying AI-generated changes and then testing those changes in the real app. Running the game after each fix helped me catch issues that were easy to miss in code review alone. Next time, I would manually test important user-facing behavior earlier instead of trusting a passing test suite too quickly. This project reinforced that AI can speed up debugging and refactoring, but I am still responsible for checking whether the final behavior is actually correct.
